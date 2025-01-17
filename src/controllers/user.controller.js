@@ -37,7 +37,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const { fullname, username, email, password } = req.body;
   // console.log("Email : ", email);
-
+  // console.log("password : ", password);
   if (
     [username, fullname, password, email].some((field) => field?.trim() === "")
   ) {
@@ -116,8 +116,10 @@ const loginUser = asyncHandler(async (req, res) => {
   // send cookie
 
   const { username, password, email } = req.body;
+  console.log(email);
+  // console.log(password);
 
-  if (!username || !email) {
+  if (!username && !email) {
     throw new ApiError(400, "username or email is required");
   }
 
@@ -129,7 +131,9 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User dose not exist");
   }
 
+  // console.log(password);
   const isPasswordValid = await user.isCorrectPassword(password);
+  console.log(isPasswordValid);
 
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid user credentials");
