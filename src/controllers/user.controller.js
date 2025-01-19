@@ -7,8 +7,8 @@ import { ApiResponse } from "../utils/apiResponse.js";
 const generateAcessAndRefereshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
-    var accessToken = user.generateAccessToken();
-    var refreshToken = user.generateRequestToken();
+    var accessToken = await user.generateAccessToken();
+    var refreshToken = await user.generateRequestToken();
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -143,6 +143,13 @@ const loginUser = asyncHandler(async (req, res) => {
     user._id
   );
 
+  // console.log(typeof accessToken);
+  // console.log(accessToken)
+ 
+  // if (!accessToken || !refreshToken) {
+  //   throw new ApiError(500, "Token generation failed");
+  // }
+
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -152,10 +159,15 @@ const loginUser = asyncHandler(async (req, res) => {
     secure: true,
   };
 
+  // const accessTokenString = String(accessToken)
+
+  // console.log(accessTokenString);
+  // console.log(refreshToken);
+  // console.log(typeof accessTokenString === "string")
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", String(accessToken), options)
+    .cookie("refreshToken", String(refreshToken), options)
     .json(
       new ApiResponse(
         200,
