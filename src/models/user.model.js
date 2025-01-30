@@ -42,7 +42,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, "password is required"],
     },
-    refereshToken: {
+    refreshToken: {
       type: String,
     },
   },
@@ -78,7 +78,7 @@ UserSchema.methods.generateAccessToken = async function () {
   );
 };
 
-UserSchema.methods.generateRequestToken = async function () {
+UserSchema.methods.generateRefreshToken = async function () {
     // console.log(process.env.REFRESH_TOKEN_SECRET);
   return jwt.sign(
     {
