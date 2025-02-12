@@ -250,7 +250,10 @@ const updateVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid VideoId.");
   }
 
-  const thumbnailLocalPath = req.files?.path;
+  const thumbnailLocalPath = req.file?.path;
+
+  // console.log(thumbnailLocalPath)
+  let thumbnailUrl;
 
   if (!title && !description && !thumbnailLocalPath) {
     throw new ApiError(400, "Title , description or thumbnail is required");
@@ -258,23 +261,35 @@ const updateVideo = asyncHandler(async (req, res) => {
 
   if (thumbnailLocalPath) {
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
-
     if (!thumbnail.url) {
       throw new ApiError(500, "Error while updating thumbnail.");
     }
+    thumbnailUrl = thumbnail.url;
   }
+  
+  const updatedFields = {};
+  if (title) updatedFields.title = title;
+  if (description) updatedFields.description = description;
+  if (thumbnailUrl) updatedFields.thumbnail = thumbnailUrl;
 
-  const response = Video.findByIdAndUpdate(
+  const response = await Video.findByIdAndUpdate(
     videoId,
-    {
-      $set: {
-        title,
-        description,
-        thumbnail: thumbnail.url,
-      },
-    },
+    { $set: updatedFields },
     { new: true }
   );
+
+
+  // const response = Video.findByIdAndUpdate(
+  //   videoId,
+  //   {
+  //     $set: {
+  //       title,
+  //       description,
+  //       thumbnail: thumbnail.url,
+  //     },
+  //   },
+  //   { new: true }
+  // );
 
   if (!response) {
     throw new ApiError(401, "Video details not found.");
