@@ -143,3 +143,9 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node
 package-lock.json
+
+node_modules
+package-lock.json
+.git
+logs
+temp
