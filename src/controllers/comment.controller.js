@@ -1,5 +1,5 @@
 import mongoose, { isValidObjectId } from "mongoose";
-import { comment, Comment } from "../models/comment.model.js";
+import { Comment } from "../models/comment.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -12,10 +12,15 @@ const getVideoComments = asyncHandler(async (req, res) => {
   let getAllCommetns;
 
   try {
-    getAllComments = Comment.aggregate([
+    // Validate videoId
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+      throw new ApiError(400, "Invalid VideoId");
+    }
+
+    const getAllComments = await Comment.aggregate([
       {
         $match: {
-          video: new mongoose.Types.ObjectId(videoId),
+          video: new mongoose.Types.ObjectId(videoId), // Ensure ObjectId conversion
         },
       },
       {
@@ -38,52 +43,39 @@ const getVideoComments = asyncHandler(async (req, res) => {
       {
         $lookup: {
           from: "likes",
-          localField: "owner",
-          foreignField: "likedBy",
+          localField: "_id", // Fix: Should match comment ID, not owner
+          foreignField: "comment",
           as: "likes",
-          pipeline: [
-            {
-              $match: {
-                comment: { $exists: true },
-              },
-            },
-          ],
         },
       },
       {
         $addFields: {
-          details: {
-            $first: "$details",
-          },
+          details: { $first: "$details" },
+          likes: { $size: "$likes" }, // Count likes
         },
       },
       {
-        $addFields: {
-          likes: { $size: "$likes" },
-        },
+        $sort: { createdAt: -1 }, // Sort by latest comments
       },
       {
-        $skip: (page - 1) * limit,
+        $skip: (parseInt(page) - 1) * parseInt(limit),
       },
       {
         $limit: parseInt(limit),
       },
     ]);
+
+    if (!getAllComments.length) {
+      return res.status(200).json(new ApiResponse(200, [], "No Comments Found"));
+    }
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, getAllComments, "Comments fetched successfully!"));
   } catch (error) {
-    throw new ApiError(500, "Something went wrong while fetching Comments !!");
+    console.error("Error fetching comments:", error);
+    throw new ApiError(500, "Something went wrong while fetching comments!");
   }
-  const result = await Comment.aggregatePaginate(getAllComments, {
-    page,
-    limit,
-  });
-
-  if (result.docs.length == 0) {
-    return res.status(200).json(new ApiResponse(200, [], "No Comments Found"));
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, result.docs, "Comments fetched Succesfully !"));
 });
 
 const addComment = asyncHandler(async (req, res) => {
@@ -122,7 +114,7 @@ const updateComment = asyncHandler(async (req, res) => {
   const response = await Comment.findByIdAndUpdate(
     commentId,
     {
-      comment,
+      content: comment,
     },
     { new: true }
   );
@@ -144,10 +136,10 @@ const deleteComment = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid CommentId");
   }
 
-  const response = Comment.findByIdAndDelete(commentId);
+  const response = await Comment.findByIdAndDelete(commentId);
 
   if (!response) {
-    throw new ApiError(401, "Somrthing went wrong while deleting comment");
+    throw new ApiError(401, "Something went wrong while deleting comment");
   }
 
   return res.status(200).json(200, response, "Comment deleted successfully");
