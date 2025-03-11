@@ -198,7 +198,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
   if (!videoFile || !thumbnail) {
     throw new ApiError(
       500,
-      "Someting went wrong while uploding video file or thumbnail"
+      "Someting went wrong while uploading video file or thumbnail"
     );
   }
 
