@@ -9,7 +9,11 @@ const tweetSchema = new mongoose.Schema({
     content : {
         type : String,
         required : true
-    }
+    },
+    likes: [{
+        type: Schema.Types.ObjectId,
+        ref: "User"
+    }]
 }, {timestamps : true})
 
 export const Tweet = new mongoose.model("Tweet", tweetSchema) 
