@@ -6,7 +6,7 @@ const playlistSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    describtion: {
+    description: {
       type: String,
       required: true,
     },
