@@ -25,12 +25,13 @@ const toggleSubscription = asyncHandler(async (req, res) => {
   let subscribe;
   let unsubscribe;
 
-  let itHasSubscription = await Subscription.findOne({
-    subscribe: req.user?._id,
-    channel: channelId,
-  });
+ // Check if user is already subscribed
+ const existingSubscription = await Subscription.findOne({
+  subscriber: req.user?._id,  // Changed from 'subscribe' to 'subscriber'
+  channel: channelId,
+});
 
-  if (itHasSubscription) {
+  if (existingSubscription) {
     unsubscribe = await Subscription.findOneAndDelete({
       channel: channelId,
       subscriber: req.user?.id,
@@ -46,7 +47,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     return res
       .status(200)
       .json(
-        new ApiResponse(200, unsubscribe, "channel unsubscribe successfully!!")
+        new ApiResponse(200, unsubscribe, "channel unsubscribed successfully!!")
       );
   } else {
     subscribe = await Subscription.create({
@@ -64,7 +65,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     return res
       .status(200)
       .json(
-        new ApiResponse(200, unsubscribe, "channel subscribe successfully!!")
+        new ApiResponse(200, subscribe, "channel subscribed successfully!!")
       );
   }
 });
@@ -92,12 +93,15 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
       },
     },
     {
+      $unwind: "$subscribers" // Unwind to get individual subscriber objects
+    },
+    {
       $project: {
-        subscribers: {
-          username: 1,
-          fullName: 1,
-          avatar: 1,
-        },
+        _id: 1,
+        subscriberId: "$subscribers._id",
+        username: "$subscribers.username",
+        fullName: "$subscribers.fullName",
+        avatar: "$subscribers.avatar",
       },
     },
   ]);
@@ -111,7 +115,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
       200,
       {
         subscriberList,
-        subscription: subscriptions[0],
+        subscriptions,
       },
       "All user channel Subscribes fetched Successfull!!"
     )
@@ -120,6 +124,8 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
+
+  // console.log(req.params);
   const { subscriberId } = req.params;
 
   if (!isValidObjectId(subscriberId)) {
@@ -130,7 +136,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     {
       // in this case i am a subcriber i want to find channel id so
       $match: {
-        channel: new mongoose.Types.ObjectId(subscriberId),
+        subscriber: new mongoose.Types.ObjectId(subscriberId),
       },
     },
     {
@@ -158,7 +164,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        subscriptions[0],
+        subscriptions,
         "All Subscribed channels fetched Successfull!!"
       )
     );

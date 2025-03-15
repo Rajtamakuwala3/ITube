@@ -1,4 +1,7 @@
 import mongoose, { isValidObjectId, Model } from "mongoose";
+import { Comment } from "../models/comment.model.js";
+import { Tweet } from "../models/tweet.model.js";
+import { Video } from "../models/video.model.js";
 import { Like } from "../models/like.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -6,13 +9,13 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { pipeline } from "stream";
 
 const toggleLike = async (Model, resourceId, userId) => {
-  const model = Model.modelName;
+  const model = Model.modelName.toLowerCase();
 
   if (!isValidObjectId(resourceId) || !isValidObjectId(userId)) {
     throw new ApiError(401, "Invalid userId or ResourceId");
   }
 
-  const isLiked = model.findOne({
+  const isLiked = await Like.findOne({
     [model.toLowerCase()]: resourceId,
     likedBy: userId,
   });
@@ -20,12 +23,12 @@ const toggleLike = async (Model, resourceId, userId) => {
 
   try {
     if (!isLiked) {
-      response = Like.creat({
+      response = await Like.create({
         [model.toLowerCase()]: resourceId,
         likedBy: userId,
       });
     } else {
-      response = Like.delete({
+      response = await Like.findOneAndDelete({
         [model.toLowerCase()]: resourceId,
         likedBy: userId,
       });
@@ -37,19 +40,24 @@ const toggleLike = async (Model, resourceId, userId) => {
     );
   }
 
-  const totalLikes = await Likes.countDocuments({
-    [model.toLowerCase()]: resourceID,
+  const totalLikes = await Like
+  .countDocuments({
+    [model.toLowerCase()]: resourceId,
   });
 
-  return { responce, isLiked, totalLikes };
+  return { response, isLiked, totalLikes };
 };
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
+
+  // console.log(req.params)
+  // console.log(req.user._id)
   const { videoId } = req.params;
   //TODO: toggle like on video
-  const { userId } = req.body;
+  const userId = req.user._id;
+  // console.log(videoId, userId)
 
-  const { isLiked, totalLikes } = toggleLike(Video, videoId, userId);
+  const {isLiked, totalLikes } = toggleLike(Video, videoId, userId);
 
   return res
     .status(200)
@@ -63,7 +71,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 const toggleCommentLike = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
   //TODO: toggle like on video
-  const { userId } = req.body;
+  const  userId  = req.user._id;
 
   const { isLiked, totalLikes } = toggleLike(Comment, commentId, userId);
 
@@ -79,7 +87,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 const toggleTweetLike = asyncHandler(async (req, res) => {
   const { tweetId } = req.params;
   //TODO: toggle like on video
-  const { userId } = req.body;
+  const  userId  = req.user._id;
 
   const { isLiked, totalLikes } = toggleLike(Tweet, tweetId, userId);
 
