@@ -14,7 +14,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
   const allLikes = await Like.aggregate([
     {
       $match: {
-        likedBy: mongoose.Types.ObjectId(req.user._id),
+        likedBy: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
@@ -47,7 +47,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
   const allSubscribers = await Subscription.aggregate([
     {
       $match: {
-        channel: mongoose.Types.ObjectId(req.user._id),
+        channel: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
@@ -55,16 +55,27 @@ const getChannelStats = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const allVidoe = await Video.aggregate([
-    {
-      $match: {
-        channel: mongoose.Types.ObjectId(req.user._id),
-      },
-    },
-    {
-      $count: "Vidoes",
-    },
-  ]);
+  // const allVideos = await Video.aggregate([
+  //   {
+  //     $match: {
+  //       channel: new mongoose.Types.ObjectId(req.user._id),
+  //     },
+  //   },
+  //   {
+  //     $count: "Vidoes",
+  //   },
+  // ]);
+
+  // Total videos - let's debug this to fix the count
+  const allVideos = await Video.find({
+    owner: new mongoose.Types.ObjectId(req.user._id)
+  });
+  
+  const videoCount = allVideos ? allVideos.length : 0;
+
+  // Log to debug
+  // console.log("Found videos:", videoCount);
+  // console.log("Video owner ID:", req.user._id);
 
   // total views
   const allViews = await Video.aggregate([
@@ -84,15 +95,16 @@ const getChannelStats = asyncHandler(async (req, res) => {
   ]);
 
   const stats = {
-    Subscribers: allSubscribes[0].subscribers,
-    totalVideos: allVideo[0].Videos,
-    totalVideoViews: allViews[0].allVideosViews,
-    totalVideoLikes: allLikes[0].totalVideoLikes,
-    totalTweetLikes: allLikes[0].totalTweetLikes,
-    totalCommentLikes: allLikes[0].totalCommentLikes,
+    Subscribers: allSubscribers && allSubscribers[0] ? allSubscribers[0].subscribers : 0,
+    // totalVideos: allVideos && allVideos[0] ? allVideos[0].totalVideos : 0,
+    totalVideos: videoCount,
+    totalVideoViews: allViews && allViews[0] ? allViews[0].allVideosViews : 0,
+    totalVideoLikes: allLikes && allLikes[0] ? allLikes[0].totalVideoLikes : 0,
+    totalTweetLikes: allLikes && allLikes[0] ? allLikes[0].totalTweetLikes : 0,
+    totalCommentLikes: allLikes && allLikes[0] ? allLikes[0].totalCommentLikes : 0,
   };
 
-  return res.stats(200).json(200, stats, "Fetched channel stats successully.");
+  return res.status(200).json(new ApiResponse(200, stats, "Fetched channel stats successully."));
 });
 
 const getChannelVideos = asyncHandler(async (req, res) => {
@@ -109,7 +121,7 @@ const getChannelVideos = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(200, allVidoes, "All videos fetched successfully.");
+    .json(new ApiResponse(200, allVidoes, "All videos fetched successfully."));
 });
 
 export { getChannelStats, getChannelVideos };
